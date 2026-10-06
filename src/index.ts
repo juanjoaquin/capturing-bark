@@ -1,0 +1,1 @@
+console.log("🐶 Detector de ladridos iniciado");
