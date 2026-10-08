@@ -1,12 +1,6 @@
 import "dotenv/config";
 import recorder from 'node-record-lpcm16';
-
-const UMBRAL = 0.1;
-const COOLDOWN_MS = 5000;
-const CHUNKS_SEGUIDOS = 2;
-
-let ultimaAlerta = 0;
-let chunksSobreUmbral = 0;
+import { BarkDetector, type BarkEvent } from "./detector.js";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK;
 
@@ -20,14 +14,17 @@ function rms(buf: Buffer): number {
     return Math.sqrt(suma / n);
 }
 
-const ahora = new Date();
+function horaArgentina(fecha: Date = new Date()): string {
+    return fecha.toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+    });
+}
 
-const horaArgentina = ahora.toLocaleString("es-AR", {
-    timeZone: "America/Argentina/Buenos_Aires",
-});
-
-
-async function sendMessage(volumen: number) {
+async function sendMessage(event: BarkEvent) {
     if (!DISCORD_WEBHOOK) {
         console.warn('No se ha configurado el webhook de Discord');
         return;
@@ -36,32 +33,35 @@ async function sendMessage(volumen: number) {
     try {
         const response = await fetch(DISCORD_WEBHOOK, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                content: `🐶 Ladrido detectado! volumen=${volumen.toFixed(3)} (${horaArgentina})`,
+                content:
+                    `🐶 Ladrido detectado (${horaArgentina(event.timestamp)})\n` +
+                    `Duración: ${event.durationMs} ms | ` +
+                    `Máx: ${event.maxRms.toFixed(2)} | ` +
+                    `Prom: ${event.averageRms.toFixed(2)}`,
             }),
-        })
+        });
 
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
 
         console.log('Mensaje enviado a Discord correctamente');
-
     } catch (e) {
         console.error('Error al enviar el mensaje a Discord:', e);
     }
 }
 
-function onLadrido(volumen: number) {
-    
-    
-    console.log(`🐶 Ladrido detectado! volumen=${volumen.toFixed(3)} (${horaArgentina})`);
-    // aquí luego irá: Discord, WebSocket y base de datos
-    sendMessage(volumen);
-}
+const detector = new BarkDetector();
+
+detector.on('bark', (e: BarkEvent) => {
+    console.log(
+        `🐶 ${horaArgentina(e.timestamp)} | ${e.durationMs} ms | ` +
+        `max=${e.maxRms.toFixed(2)} | prom=${e.averageRms.toFixed(2)}`
+    );
+    sendMessage(e);   // actívalo cuando termines de calibrar
+});
 
 const rec = recorder.record({
     sampleRate: 16000,
@@ -73,22 +73,6 @@ const rec = recorder.record({
 rec
     .stream()
     .on('error', (e: Error) => console.error('Error:', e))
-    .on('data', (chunk: Buffer) => {
-        const v = rms(chunk);
-
-        if (v > UMBRAL) {
-            chunksSobreUmbral++;
-        } else {
-            chunksSobreUmbral = 0;
-        }
-
-        const ahora = Date.now();
-        if (chunksSobreUmbral >= CHUNKS_SEGUIDOS && ahora - ultimaAlerta > COOLDOWN_MS) {
-            ultimaAlerta = ahora;
-            chunksSobreUmbral = 0;
-            onLadrido(v);
-        }
-    });
-
+    .on('data', (chunk: Buffer) => detector.procesar(rms(chunk), chunk.length));
 
 console.log('Escuchando ladridos... (Ctrl+C para salir)');
