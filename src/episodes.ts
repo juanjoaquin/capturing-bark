@@ -1,7 +1,10 @@
 import { EventEmitter } from 'events';
 import type { BarkEvent } from './detector.js';
+import { randomUUID } from 'crypto';
+
 
 export interface Episode {
+    id: string;
     start: Date;
     last: Date;
     count: number;
@@ -17,7 +20,7 @@ export class EpisodeTracker extends EventEmitter {
 
     registrar(e: BarkEvent) {
         if (!this.episode) {
-            this.episode = { start: e.timestamp, last: e.timestamp, count: 1 };
+            this.episode = { id: randomUUID(), start: e.timestamp, last: e.timestamp, count: 1 };
             this.emit('start', { ...this.episode });   // aquí va la notificación inmediata
         } else {
             this.episode.count++;
