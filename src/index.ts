@@ -1,8 +1,10 @@
 import "dotenv/config";
 import recorder from 'node-record-lpcm16';
 import { BarkDetector, type BarkEvent } from "./detector.js";
+import { EpisodeTracker, type Episode } from './episodes.js';
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK;
+const SILENCIO_MS = Number(process.env.SILENCIO_MS ?? 10_000);
 
 function rms(buf: Buffer): number {
     const n = Math.floor(buf.length / 2);
@@ -24,7 +26,8 @@ function horaArgentina(fecha: Date = new Date()): string {
     });
 }
 
-async function sendMessage(event: BarkEvent) {
+// Ahora recibe un texto, no un BarkEvent
+async function sendMessage(texto: string) {
     if (!DISCORD_WEBHOOK) {
         console.warn('No se ha configurado el webhook de Discord');
         return;
@@ -34,13 +37,7 @@ async function sendMessage(event: BarkEvent) {
         const response = await fetch(DISCORD_WEBHOOK, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                content:
-                    `🐶 Ladrido detectado (${horaArgentina(event.timestamp)})\n` +
-                    `Duración: ${event.durationMs} ms | ` +
-                    `Máx: ${event.maxRms.toFixed(2)} | ` +
-                    `Prom: ${event.averageRms.toFixed(2)}`,
-            }),
+            body: JSON.stringify({ content: texto }),
         });
 
         if (!response.ok) {
@@ -54,13 +51,32 @@ async function sendMessage(event: BarkEvent) {
 }
 
 const detector = new BarkDetector();
+const episodios = new EpisodeTracker(SILENCIO_MS);
 
+// Cada ladrido: se muestra en consola y se registra en el episodio.
+// Ya NO se manda un mensaje por cada ladrido.
 detector.on('bark', (e: BarkEvent) => {
     console.log(
         `🐶 ${horaArgentina(e.timestamp)} | ${e.durationMs} ms | ` +
         `max=${e.maxRms.toFixed(2)} | prom=${e.averageRms.toFixed(2)}`
     );
-    sendMessage(e);   // actívalo cuando termines de calibrar
+    // guardarLadrido(e);  // más adelante: cada ladrido se guarda siempre
+    episodios.registrar(e);
+});
+
+// Primer ladrido del episodio: notificación inmediata
+episodios.on('start', (ep: Episode) => {
+    console.log('➡️  Episodio iniciado');
+    sendMessage(`🐶 Empezó a ladrar (${horaArgentina(ep.start)})`);
+});
+
+// Pasaron SILENCIO_MS sin ladridos: el episodio terminó
+episodios.on('end', (ep: Episode) => {
+    const seg = Math.round((ep.last.getTime() - ep.start.getTime()) / 1000);
+    console.log(`⏹️  Episodio terminado: ${ep.count} ladridos en ${seg} s`);
+    if (ep.count > 1) {   // si fue un solo ladrido, no hace falta resumen
+        sendMessage(`🐶 Actividad finalizada: ${ep.count} ladridos en ${seg} segundos.`);
+    }
 });
 
 const rec = recorder.record({
