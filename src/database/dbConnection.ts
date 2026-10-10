@@ -19,7 +19,7 @@ async function connect() {
     }
 
     try {
-        const connection = await mysql.createConnection({
+        const connection = await mysql.createPool({
             host: DB_HOST,
             port: Number(DB_PORT ?? 3306),
             user: DB_USER,
