@@ -2,9 +2,12 @@ import "dotenv/config";
 import recorder from 'node-record-lpcm16';
 import { BarkDetector, type BarkEvent } from "./detector.js";
 import { EpisodeTracker, type Episode } from './episodes.js';
+import { guardarLadrido, initDb } from "./database/db.js";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK;
 const SILENCIO_MS = Number(process.env.SILENCIO_MS ?? 10_000);
+
+initDb().catch((e) => console.error('No se pudo conectar la base de datos', e));
 
 function rms(buf: Buffer): number {
     const n = Math.floor(buf.length / 2);
@@ -61,7 +64,8 @@ detector.on('bark', (e: BarkEvent) => {
         `max=${e.maxRms.toFixed(2)} | prom=${e.averageRms.toFixed(2)}`
     );
     // guardarLadrido(e);  // más adelante: cada ladrido se guarda siempre
-    episodios.registrar(e);
+    const episodeId = episodios.registrar(e);
+    guardarLadrido(e, episodeId);
 });
 
 // Primer ladrido del episodio: notificación inmediata

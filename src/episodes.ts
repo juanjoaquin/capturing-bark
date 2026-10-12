@@ -16,9 +16,12 @@ export class EpisodeTracker extends EventEmitter {
 
     constructor(private silencioMs = 10_000) {
         super();
+        if (!Number.isFinite(silencioMs) || silencioMs <= 0) {
+            throw new Error(`silencioMs inválido: ${silencioMs}`);
+        }
     }
 
-    registrar(e: BarkEvent) {
+    registrar(e: BarkEvent): string {
         if (!this.episode) {
             this.episode = { id: randomUUID(), start: e.timestamp, last: e.timestamp, count: 1 };
             this.emit('start', { ...this.episode });   // aquí va la notificación inmediata
@@ -30,6 +33,8 @@ export class EpisodeTracker extends EventEmitter {
         // cada ladrido reinicia la cuenta: el silencio se mide desde el último
         if (this.timer) clearTimeout(this.timer);
         this.timer = setTimeout(() => this.cerrar(), this.silencioMs);
+
+        return this.episode.id
     }
 
     private cerrar() {
