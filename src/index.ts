@@ -3,6 +3,7 @@ import recorder from 'node-record-lpcm16';
 import { BarkDetector, type BarkEvent } from "./detector.js";
 import { EpisodeTracker, type Episode } from './episodes.js';
 import { guardarEpisodio, guardarLadrido, initDb } from "./database/db.js";
+import { crearApi } from "./api/app.js";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK;
 const SILENCIO_MS = Number(process.env.SILENCIO_MS ?? 10_000);
@@ -97,3 +98,9 @@ rec
     .on('data', (chunk: Buffer) => detector.procesar(rms(chunk), chunk.length));
 
 console.log('Escuchando ladridos... (Ctrl+C para salir)');
+
+
+const PORT = Number(process.env.PORT ?? 3000);
+const server = crearApi().listen(PORT, () => {
+    console.log(`API en http://localhost:${PORT}`);
+});

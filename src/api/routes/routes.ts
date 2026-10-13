@@ -4,6 +4,15 @@ import { statsController } from "../controllers/stats.controller.js";
 
 const router = Router();
 
+/*
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/episodes
+curl "http://localhost:3000/api/episodes?limit=5"
+curl http://localhost:3000/api/barks
+curl http://localhost:3000/api/stats/today
+curl http://localhost:3000/api/stats/by-hour
+*/
+
 // EPISODES
 router.get('/episodes', episodeController.list);
 router.get('/episodes/:id', episodeController.get);
