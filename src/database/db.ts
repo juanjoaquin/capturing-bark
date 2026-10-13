@@ -13,10 +13,13 @@ export async function initDb() {
 
 export async function guardarLadrido(e: BarkEvent, episodeId: string) {
     try {
-        await pool.execute('INSERT INTO bark_events (id, episode_id_ barked_at, duration_ms, max_rms, average_ms, source) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        await pool.execute(
+            `INSERT INTO bark_events
+             (id, episode_id, barked_at, duration_ms, max_rms, average_rms, source)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [randomUUID(), episodeId, e.timestamp, e.durationMs, e.maxRms, e.averageRms, SOURCE]
-        )
-    } catch(error) {
+        );
+    } catch (error) {
         console.error("Error guardando ladrido", error);
     }
 }
@@ -26,7 +29,7 @@ export async function guardarEpisodio(ep: Episode) {
         await pool.execute('INSERT INTO episodes (id, started_at, ended_at, bark_count) VALUES (?, ?, ?, ?)',
             [ep.id, ep.start, ep.last, ep.count]
         )
-    } catch(error) {
+    } catch (error) {
         console.error("Error guardando episodio", error)
     }
 }

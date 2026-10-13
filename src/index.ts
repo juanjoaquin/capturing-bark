@@ -2,7 +2,7 @@ import "dotenv/config";
 import recorder from 'node-record-lpcm16';
 import { BarkDetector, type BarkEvent } from "./detector.js";
 import { EpisodeTracker, type Episode } from './episodes.js';
-import { guardarLadrido, initDb } from "./database/db.js";
+import { guardarEpisodio, guardarLadrido, initDb } from "./database/db.js";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK;
 const SILENCIO_MS = Number(process.env.SILENCIO_MS ?? 10_000);
@@ -78,6 +78,7 @@ episodios.on('start', (ep: Episode) => {
 episodios.on('end', (ep: Episode) => {
     const seg = Math.round((ep.last.getTime() - ep.start.getTime()) / 1000);
     console.log(`⏹️  Episodio terminado: ${ep.count} ladridos en ${seg} s`);
+    guardarEpisodio(ep);
     if (ep.count > 1) {   // si fue un solo ladrido, no hace falta resumen
         sendMessage(`🐶 Actividad finalizada: ${ep.count} ladridos en ${seg} segundos.`);
     }
