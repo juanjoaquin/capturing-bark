@@ -24,13 +24,12 @@ export class EpisodeTracker extends EventEmitter {
     registrar(e: BarkEvent): string {
         if (!this.episode) {
             this.episode = { id: randomUUID(), start: e.timestamp, last: e.timestamp, count: 1 };
-            this.emit('start', { ...this.episode });   // aquí va la notificación inmediata
+            this.emit('start', { ...this.episode });  
         } else {
             this.episode.count++;
-            this.episode.last = e.timestamp;           // se registra, pero no emite nada
+            this.episode.last = e.timestamp;           
         }
 
-        // cada ladrido reinicia la cuenta: el silencio se mide desde el último
         if (this.timer) clearTimeout(this.timer);
         this.timer = setTimeout(() => this.cerrar(), this.silencioMs);
 

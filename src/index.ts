@@ -4,6 +4,7 @@ import { BarkDetector, type BarkEvent } from "./detector.js";
 import { EpisodeTracker, type Episode } from './episodes.js';
 import { guardarEpisodio, guardarLadrido, initDb } from "./database/db.js";
 import { crearApi } from "./api/app.js";
+import { horaArgentina } from "./utils/utils.js";
 
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK;
 const SILENCIO_MS = Number(process.env.SILENCIO_MS ?? 10_000);
@@ -18,16 +19,6 @@ function rms(buf: Buffer): number {
         suma += s * s;
     }
     return Math.sqrt(suma / n);
-}
-
-function horaArgentina(fecha: Date = new Date()): string {
-    return fecha.toLocaleString('es-AR', {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-    });
 }
 
 // Ahora recibe un texto, no un BarkEvent
