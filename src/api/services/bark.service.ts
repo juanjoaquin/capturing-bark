@@ -11,7 +11,7 @@ export function crearMonitor() {
 
     detector.on("bark", (e: BarkEvent) => {
         console.log(    
-            `🐶 ${horaArgentina(e.timestamp)} | ${e.durationMs} ms | ` +
+            `${horaArgentina(e.timestamp)} | ${e.durationMs} ms | ` +
             `max=${e.maxRms.toFixed(2)} | prom=${e.averageRms.toFixed(2)}`
         );
         const episodeId = episodios.registrar(e);
@@ -25,10 +25,10 @@ export function crearMonitor() {
 
     episodios.on("end", (ep: Episode) => {
         const seg = Math.round((ep.last.getTime() - ep.start.getTime()) / 1000);
-        console.log(`⏹️  Episodio terminado: ${ep.count} ladridos en ${seg} s`);
+        console.log(`⏹Episodio terminado: ${ep.count} ladridos en ${seg} s`);
         guardarEpisodio(ep);
         if (ep.count > 1) {
-            sendMessage(`🐶 Actividad finalizada: ${ep.count} ladridos en ${seg} segundos.`);
+            sendMessage(`Actividad finalizada: ${ep.count} ladridos en ${seg} segundos.`);
         }
     });
 
