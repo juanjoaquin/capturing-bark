@@ -19,8 +19,8 @@ export function crearMonitor() {
     });
 
     episodios.on("start", (ep: Episode) => {
-        console.log("➡️  Episodio iniciado");
-        sendMessage(`🐶 Empezó a ladrar (${horaArgentina(ep.start)})`);
+        console.log("Episodio iniciado");
+        sendMessage(`Empezó a ladrar (${horaArgentina(ep.start)})`);
     });
 
     episodios.on("end", (ep: Episode) => {
